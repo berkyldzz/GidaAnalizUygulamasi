@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, ActivityIndicator, StyleSheet, ScrollView } from "react-native";
+import { 
+  View, Text, TouchableOpacity, Image, ActivityIndicator, StyleSheet, ScrollView 
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { GIDA_VERITABANI } from "../../constants/ingredients";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const GOOGLE_CLOUD_VISION_API_KEY = "AIzaSyAskUv1Ur7DYfuoCT-2fTySs31x0Jwf5Js"; // 🔑 API Anahtarını buraya ekleyin.
 
@@ -11,6 +13,7 @@ const OCRScanScreen = () => {
   const [image, setImage] = useState<string | null>(null);
   const [text, setText] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
     console.log("OCR Bileşeni Yüklendi");
@@ -37,7 +40,14 @@ const OCRScanScreen = () => {
     try {
       const storedImages = await AsyncStorage.getItem("scannedImages");
       let images = storedImages ? JSON.parse(storedImages) : [];
-      const newImage = { uri, text: extractedText };
+  
+      // 📌 Yeni eklenen veriye tarih ekle
+      const newImage = {
+        uri,
+        text: extractedText,
+        date: new Date().toLocaleString(), // 📌 Şu anki tarih ve saat
+      };
+  
       images = [newImage, ...images];
       await AsyncStorage.setItem("scannedImages", JSON.stringify(images));
     } catch (error) {
@@ -48,6 +58,7 @@ const OCRScanScreen = () => {
   // 📌 Google Vision API ile OCR İşlemi
   const processImage = async (uri: string) => {
     setLoading(true);
+    setStatusMessage("OCR işlemi başlatıldı...");
 
     try {
       // Fotoğrafı Base64 formatına çevir
@@ -71,43 +82,59 @@ const OCRScanScreen = () => {
 
       if (!result.responses || result.responses.length === 0 || !result.responses[0].fullTextAnnotation) {
         console.error("OCR Hatası: API Yanıtı Boş veya Beklenmeyen Format");
-        setText("Metin bulunamadı. Lütfen daha net bir fotoğraf çekin.");
+        setText("");
+        setStatusMessage("Metin bulunamadı. Lütfen daha net bir fotoğraf çekin.");
       } else {
         let extractedText = result.responses[0].fullTextAnnotation.text;
         setText(extractedText);
+        setStatusMessage("OCR işlemi tamamlandı ✅");
 
         // 📌 Yeni tarama verisini kaydet
         await saveScannedImage(uri, extractedText);
       }
     } catch (error) {
       console.error("OCR Hatası:", error);
-      setText("OCR işlemi başarısız oldu. Lütfen tekrar deneyin.");
+      setText("");
+      setStatusMessage("OCR işlemi başarısız oldu. Lütfen tekrar deneyin.");
     }
 
     setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={pickImage} style={styles.button}>
-        <Text style={styles.buttonText}>Fotoğraf Seç</Text>
-      </TouchableOpacity>
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.container}>
+        <TouchableOpacity onPress={pickImage} style={styles.button}>
+          <Text style={styles.buttonText}>📷 Fotoğraf Seç</Text>
+        </TouchableOpacity>
 
-      {image && <Image source={{ uri: image }} style={styles.image} />}
+        {image && (
+          <View style={styles.imagePreviewContainer}>
+            <Image source={{ uri: image }} style={styles.image} />
+          </View>
+        )}
 
-      <ScrollView style={styles.textContainer}>
-        {loading ? <ActivityIndicator size="large" color="blue" /> : <Text>{text}</Text>}
-      </ScrollView>
-    </View>
+        <Text style={styles.statusMessage}>{statusMessage}</Text>
+
+        <ScrollView style={styles.textContainer}>
+          {loading ? <ActivityIndicator size="large" color="blue" /> : <Text>{text}</Text>}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#f8f8f8", // 📌 SafeAreaView için arka plan
+  },
   container: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#f5f5f5",
+    paddingHorizontal: 16,
   },
   button: {
     padding: 15,
@@ -120,16 +147,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  imagePreviewContainer: {
+    marginTop: 15,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 3,
+  },
   image: {
     width: 250,
     height: 250,
     borderRadius: 10,
-    marginTop: 10,
+  },
+  statusMessage: {
+    fontSize: 16,
+    color: "#333",
+    marginTop: 15,
+    fontWeight: "bold",
   },
   textContainer: {
     marginTop: 20,
     paddingHorizontal: 20,
     maxHeight: 300,
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 3,
   },
 });
+
 export default OCRScanScreen;

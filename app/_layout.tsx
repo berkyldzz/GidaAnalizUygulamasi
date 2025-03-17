@@ -3,8 +3,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { View, StyleSheet, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import ExploreScreen from "./tabs/explore";
-import OCRScanScreen from "./tabs/ocr-scan";
+import ExploreScreen from "./tabs/old_analysis";
+import OCRScanScreen from "./tabs/ocr_scan";
 
 const Tab = createBottomTabNavigator();
 
@@ -31,12 +31,13 @@ export default function AppLayout() {
           let iconName: keyof typeof Ionicons.glyphMap;
 
           switch (route.name) {
-            case "📂 Geçmiş Analizler":
-              iconName = focused ? "compass" : "compass-outline";
-              break;
             case "Gıda Analizi":
               iconName = focused ? "camera" : "camera-outline";
               break;
+            case "📜 Geçmiş Analizler":
+              iconName = focused ? "compass" : "compass-outline";
+              break;
+            
             default:
               iconName = "help-circle";
           }
@@ -45,8 +46,8 @@ export default function AppLayout() {
         },
       })}
     >
-      <Tab.Screen name="📂 Geçmiş Analizler" component={ExploreScreen} />
       <Tab.Screen name="Gıda Analizi" component={OCRScanScreen} />
+      <Tab.Screen name="📜 Geçmiş Analizler" component={ExploreScreen} />
     </Tab.Navigator>
   );
 }
