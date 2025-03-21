@@ -1,26 +1,28 @@
-import React, { useState, useEffect } from "react";
-import { 
-  View, Text, FlatList, Image, StyleSheet, RefreshControl, TouchableOpacity, Modal, ScrollView 
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  Image,
+  StyleSheet,
+  RefreshControl,
+  SafeAreaView,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  StatusBar,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native"; 
+import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "react-native";
+import { theme } from "../styles/theme";
 
-interface ScannedItem {
-  uri: string;
-  text: string;
-  date: string;
-}
-
-const ExploreScreen = () => {
-  const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
+const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
+  const [scannedItems, setScannedItems] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ScannedItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [textModalVisible, setTextModalVisible] = useState(false);
 
-  // 📌 AsyncStorage'dan taranan öğeleri getir
   const fetchScannedItems = async () => {
     try {
       const storedItems = await AsyncStorage.getItem("scannedImages");
@@ -32,24 +34,21 @@ const ExploreScreen = () => {
     }
   };
 
-  // 📌 Sayfa açıldığında en güncel verileri al
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       fetchScannedItems();
-    }, [])
+    }, [scanTrigger])
   );
 
-  // 📌 Aşağı çekerek yenileme fonksiyonu
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchScannedItems(); // 📌 En güncel verileri getir
+    await fetchScannedItems();
     setRefreshing(false);
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer}>  
-          <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
-
+    <SafeAreaView style={styles.safeContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
       <View style={styles.container}>
         {scannedItems.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -60,28 +59,40 @@ const ExploreScreen = () => {
             data={scannedItems}
             keyExtractor={(item, index) => index.toString()}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            renderItem={({ item, index }) => (
-              <TouchableOpacity
-                style={styles.scanItem}
-                onPress={() => {
-                  setSelectedItem(item);
-                  setTextModalVisible(true); // 📌 Metin popup'ını aç
-                }}
-              >
-                <View style={styles.row}>
-                  <TouchableOpacity onPress={() => {
-                    setSelectedItem(item);
-                    setImageModalVisible(true); // 📌 Tam ekran resim aç
-                  }}>
+            numColumns={2} // 📌 2 sütun görünüm için eklendi
+            columnWrapperStyle={styles.row} // 📌 Sütunları hizalamak için eklendi
+            contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 10 }} // 📌 Sağdan ve soldan boşluk eklendi
+            renderItem={({ item }) => (
+              <View style={styles.scanItem}>
+                <View style={styles.imageContainer}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedItem(item);
+                      setImageModalVisible(true);
+                    }}
+                  >
                     <Image source={{ uri: item.uri }} style={styles.image} />
                   </TouchableOpacity>
-                  <View style={styles.textContainer}>
-                    <View style={styles.dateContainer}>
-                      <Text style={styles.dateText}>📅 {item.date}</Text>
-                    </View>
+                  <View style={styles.dateContainer}>
+                    <Text style={styles.dateText}>
+                      📅 {item.date ? item.date.split(" ")[0].replace(",", "") : "Tarih Yok"}
+                    </Text>
+                    <Text style={styles.timeText}>
+                      ⏰ {item.date ? item.date.split(" ")[1] : "Saat Yok"}
+                    </Text>
                   </View>
                 </View>
-              </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.resultButton}
+                  onPress={() => {
+                    setSelectedItem(item);
+                    setTextModalVisible(true);
+                  }}
+                >
+                  <Text style={styles.resultButtonText} numberOfLines={1} ellipsizeMode="tail">📊 Analiz Sonuçları</Text>
+                </TouchableOpacity>
+              </View>
             )}
           />
         )}
@@ -121,18 +132,17 @@ const ExploreScreen = () => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: "#fff", // 📌 Safe Area için arka plan
+    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#fff",
+    padding: 10,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 10,
     textAlign: "center",
+    marginBottom: 10,
   },
   emptyContainer: {
     flex: 1,
@@ -144,40 +154,52 @@ const styles = StyleSheet.create({
     color: "#8e8e8e",
   },
   scanItem: {
-    marginVertical: 10,
-    padding: 15,
-    borderRadius: 12,
-    backgroundColor: "#f9f9f9",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  row: {
-    flexDirection: "row",
+    flex: 1,
+    marginBottom: 15,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: "#f5f5f5",
     alignItems: "center",
+    width: "95%", // 📌 İçeriği ekrana ortala
+    alignSelf: "center", // 📌 Ortalamayı güçlendir
+  },
+  imageContainer: {
+    alignItems: "center", // 📌 Resim ve tarih ortada olacak
   },
   image: {
     width: 120,
     height: 120,
     borderRadius: 10,
-    marginRight: 10,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  dateContainer: {
-    backgroundColor: "#f0f0f0",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-    marginTop: 5,
   },
   dateText: {
+    fontSize: 16, // 📌 Tarih yazısı büyütüldü
+    fontWeight: "bold",
+    color: "#555",
+    marginTop: 5,
+    textAlign: "center", // 📌 Tarih ortalandı
+  },
+  dateContainer: {
+    alignItems: "center",
+  },
+  timeText: {
     fontSize: 14,
     color: "#555",
+    textAlign: "center",
+    marginTop: 2, // 📌 Saat ile tarih arasında boşluk bırakıldı
+  },
+  resultButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    alignSelf: "center"
+  },
+  resultButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center"
   },
   modalContainer: {
     flex: 1,
@@ -210,7 +232,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   textScroll: {
-    maxHeight: 400, // 📌 Uzun metinlerde kaydırma
+    maxHeight: 400,
   },
   modalText: {
     fontSize: 16,
@@ -229,6 +251,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  row: {
+    justifyContent: "space-between", // 📌 2 sütun görünüm için hizalama
+  }
 });
 
-export default ExploreScreen;
+export default OldAnalysis;

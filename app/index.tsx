@@ -1,5 +1,3 @@
-import { Redirect } from "expo-router";
+import _layout from "./_layout";
 
-export default function Index() {
-  return <Redirect href="/tabs/explore" />; // 📌 "Keşfet" sekmesine yönlendirme
-}
+export default _layout;
