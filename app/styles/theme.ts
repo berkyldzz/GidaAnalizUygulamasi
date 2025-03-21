@@ -10,3 +10,4 @@ export const theme = {
       buttonText: "#FFFFFF", // Buton yazı rengi
     },
   };
+export default theme; 

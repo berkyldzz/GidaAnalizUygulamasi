@@ -2,6 +2,7 @@
   "expo": {
     "name": "GidaAnalizUygulamasi",
     "slug": "gida-analiz",
+    "scheme": "gidaanaliz",
     "version": "1.0.0",
     "orientation": "portrait",
     "splash": {
@@ -9,6 +10,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "experiments": {
+    "newArchEnabled": true
+  },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.berkyldzz.gidaanaliz",

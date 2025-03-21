@@ -37,7 +37,7 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
           text: "📷 Kamera",
           onPress: async () => {
             let result = await ImagePicker.launchCameraAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              mediaTypes: ["images"], // ✅ yenisi
               allowsEditing: true,
               aspect: [4, 3],
               quality: 1,
@@ -53,7 +53,7 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
           text: "🖼️ Galeri",
           onPress: async () => {
             let result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              mediaTypes: ["images"], // ✅ yenisi
               allowsEditing: true,
               aspect: [4, 3],
               quality: 1,
