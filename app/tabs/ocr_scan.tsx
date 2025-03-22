@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Asset } from "expo-asset";
 import {
   View,
   Text,
@@ -8,18 +9,24 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
+  Modal,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../styles/theme";
-
+import { gida_database } from "../../assets/database";
 const GOOGLE_VISION_API_KEY = "AIzaSyAskUv1Ur7DYfuoCT-2fTySs31x0Jwf5Js";
 
 const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
   const [image, setImage] = useState<string | null>(null);
   const [text, setText] = useState<string>("");
+  const [gidaDatabase, setGidaDatabase] = useState<any>({});
+  const [analizSonuclari, setAnalizSonuclari] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
+    setGidaDatabase(gida_database);
     (async () => {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
@@ -72,6 +79,7 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
   };
 
   const processImage = async (uri: string) => {
+    setLoading(true);
     try {
       const base64Img = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
@@ -104,18 +112,42 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
       ) {
         const detectedText = result.responses[0].fullTextAnnotation.text;
         setText(detectedText);
-        await saveScannedImage(uri, detectedText);
+        const sonuclar = analizEt(detectedText);
+        setAnalizSonuclari(sonuclar);
+        await saveScannedImage(uri, sonuclar.join("\n\n"));
         onScanComplete();
+        setLoading(false);
       } else {
         setText("Görselde metin bulunamadı.");
       }
     } catch (error) {
       console.error("OCR işlemi sırasında hata oluştu:", error);
       setText("OCR işlemi başarısız oldu.");
+      setLoading(false);
     }
   };
 
+  const analizEt = (metin: string): string[] => {
+    const normalizedText = metin.toLowerCase();
+    const sonuclar: string[] = [];
+
+    Object.keys(gidaDatabase).forEach((madde) => {
+      const kelime = madde.toLowerCase();
+      if (normalizedText.includes(kelime)) {
+        const bilgi = gidaDatabase[madde];
+        const yorum = `Madde: ${madde}\nGüvenilirlik: ${bilgi.güvenilirlik}\nEtiklik: ${bilgi.etiklik}\nAçıklama: ${bilgi.açıklama}`;
+        sonuclar.push(yorum);
+      }
+    });
+
+    return sonuclar;
+  };
+
   const saveScannedImage = async (uri: string, extractedText: string) => {
+    if (!extractedText) {
+      console.error("Analiz sonuçları mevcut değil, kaydetme işlemi iptal edildi.");
+      return;
+    }
     try {
       const storedItems = await AsyncStorage.getItem("scannedImages");
       let images = storedItems ? JSON.parse(storedItems) : [];
@@ -153,13 +185,78 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
         {image && (
           <View style={styles.resultContainer}>
             <Image source={{ uri: image }} style={styles.image} />
+            {loading && (
+              <Text style={{ fontSize: 16, marginBottom: 10, color: theme.colors.primary }}>
+                🔄 Analiz yapılıyor...
+              </Text>
+            )}
+            {analizSonuclari.length > 0 && (
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: 18,
+                  marginBottom: 10,
+                  textAlign: "center",
+                }}
+              >
+                📊 Madde Analizi
+              </Text>
+            )}
             <ScrollView style={styles.resultBox} nestedScrollEnabled={true}>
-              <Text style={styles.resultText}>{text}</Text>
+              {analizSonuclari.length > 0 ? (
+                <>
+                  <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 8, overflow: "hidden" }}>
+                    {analizSonuclari.map((sonuc, index) => {
+                      const [madde, Güvenilirlik, Etiklik, Açıklama] = sonuc.split("\n").map((line) => line.replace(/^.*?:\s*/, "").trim());
+                      return (
+                        <View
+                          key={index}
+                          style={{
+                            borderBottomWidth: 1,
+                            borderBottomColor: "#ddd",
+                            padding: 10,
+                            alignItems: "center",
+                          }}
+                        >
+                          <Text style={{ fontWeight: "bold", fontSize: 16, textAlign: "center" }}>{madde}</Text>
+                      <Text style={{ 
+                        color: Güvenilirlik.toLowerCase() === "zararlı" 
+                          ? "red" 
+                          : Güvenilirlik.toLowerCase() === "şüpheli" 
+                          ? "orange" 
+                          : "green", 
+                        marginTop: 4, 
+                        textAlign: "center" 
+                      }}>
+                            Güvenilirlik: <Text style={{ fontWeight: "600" }}>{Güvenilirlik}</Text>
+                      </Text>
+                      <Text style={{ 
+                        color: Etiklik.toLowerCase() === "haram"
+                          ? "red"
+                          : Etiklik.toLowerCase() === "şüpheli"
+                          ? "orange"
+                          : "green",
+                        textAlign: "center" 
+                      }}>
+                            Etiklik: <Text style={{ fontWeight: "600" }}>{Etiklik}</Text>
+                      </Text>
+                          <Text style={{ color: "#333", marginTop: 6, fontSize: 13, textAlign: "center" }}>
+                            {Açıklama}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : !loading && (
+                <Text style={styles.resultText}>Analiz edilecek içerik bulunamadı.</Text>
+              )}
             </ScrollView>
 
             <TouchableOpacity style={styles.resetButton} onPress={() => {
               setImage(null);
               setText("");
+              setAnalizSonuclari([]);
             }}>
               <Text style={styles.resetButtonText}>🔄 Yeniden Analiz Et</Text>
             </TouchableOpacity>
@@ -225,7 +322,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 280,
+    height: 200,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: theme.colors.accent,
@@ -233,9 +330,9 @@ const styles = StyleSheet.create({
   },
   resultBox: {
     backgroundColor: theme.colors.cardBackground,
-    padding: 15,
-    borderRadius: 8,
-    maxHeight: 300, // 📌 Kaydırma alanı artırıldı
+    padding: 8,
+    borderRadius: 30,
+    maxHeight: 375, // 📌 Kaydırma alanı artırıldı
     width: "100%",
   },
   resultText: {
@@ -257,6 +354,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-});
+}); 
 
 export default OcrScan;

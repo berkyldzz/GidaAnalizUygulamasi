@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -118,8 +118,67 @@ const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
               <TouchableOpacity style={styles.closeButton} onPress={() => setTextModalVisible(false)}>
                 <Text style={styles.closeButtonText}>← Geri</Text>
               </TouchableOpacity>
+              <Text style={{ fontWeight: "bold", fontSize: 18, marginBottom: 10, textAlign: "center" }}>
+                📊 Madde Analizi
+              </Text>
               <ScrollView style={styles.textScroll}>
-                <Text style={styles.modalText}>{selectedItem?.text}</Text>
+                {selectedItem?.text && selectedItem.text.trim() !== "" ? (
+                  <>
+                    <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 8, overflow: "hidden" }}>
+                      {selectedItem.text.split("\n\n").map((entry: string, index: number) => {
+                        const madde = entry.split("\n").find((line: string) => line.startsWith("Madde:"))?.replace("Madde:", "").trim() || "Bilinmiyor";
+                        const güvenilirlik = entry.split("\n").find((line: string) => line.startsWith("Güvenilirlik:"))?.replace("Güvenilirlik:", "").trim() || "Bilinmiyor";
+                        const etiklik = entry.split("\n").find((line: string) => line.startsWith("Etiklik:"))?.replace("Etiklik:", "").trim() || "Bilinmiyor";
+                        const açıklama = entry.split("\n").find((line: string) => line.startsWith("Açıklama:"))?.replace("Açıklama:", "").trim() || "";
+                        return (
+                          <View
+                            key={index}
+                            style={{
+                              borderBottomWidth: 1,
+                              borderBottomColor: "#ddd",
+                              padding: 10,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Text style={{ fontWeight: "bold", fontSize: 16, textAlign: "center" }}>{madde}</Text>
+                            <Text
+                              style={{
+                                color:
+                                  güvenilirlik.toLowerCase() === "zararlı"
+                                    ? "red"
+                                    : güvenilirlik.toLowerCase() === "şüpheli"
+                                    ? "orange"
+                                    : "green",
+                                marginTop: 4,
+                                textAlign: "center",
+                              }}
+                            >
+                              Güvenilirlik: <Text style={{ fontWeight: "600" }}>{güvenilirlik}</Text>
+                            </Text>
+                            <Text
+                              style={{
+                                color:
+                                  etiklik.toLowerCase() === "haram"
+                                    ? "red"
+                                    : etiklik.toLowerCase() === "şüpheli"
+                                    ? "orange"
+                                    : "green",
+                                textAlign: "center",
+                              }}
+                            >
+                              Etiklik: <Text style={{ fontWeight: "600" }}>{etiklik}</Text>
+                            </Text>
+                            <Text style={{ color: "#333", marginTop: 6, fontSize: 13, textAlign: "center" }}>
+                              {açıklama}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </>
+                ) : (
+                  <Text style={styles.modalText}>Analiz sonucu bulunamadı.</Text>
+                )}
               </ScrollView>
             </View>
           </View>
@@ -225,14 +284,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   textModal: {
-    width: "80%",
+    maxHeight: "80%", // Limit modal height
+    width: "95%",
     backgroundColor: "#fff",
-    padding: 20,
+    padding: 10,
     borderRadius: 10,
     alignItems: "center",
   },
   textScroll: {
-    maxHeight: 400,
+    maxHeight: 600,
   },
   modalText: {
     fontSize: 16,
