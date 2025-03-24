@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Asset } from "expo-asset";
 import {
   View,
   Text,
@@ -16,9 +15,9 @@ import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../styles/theme";
 import { gida_database } from "../../assets/database";
-const GOOGLE_VISION_API_KEY = "AIzaSyAskUv1Ur7DYfuoCT-2fTySs31x0Jwf5Js";
+import { GOOGLE_VISION_API_KEY } from '@env';
 
-const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
+  const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
   const [image, setImage] = useState<string | null>(null);
   const [text, setText] = useState<string>("");
   const [gidaDatabase, setGidaDatabase] = useState<any>({});
@@ -84,7 +83,7 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
       const base64Img = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
+  
       const body = JSON.stringify({
         requests: [
           {
@@ -93,7 +92,7 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
           },
         ],
       });
-
+  
       const response = await fetch(
         `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
         {
@@ -102,13 +101,14 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
           body: body,
         }
       );
-
+      
       const result = await response.json();
 
       if (
         result.responses &&
         result.responses.length > 0 &&
-        result.responses[0].fullTextAnnotation
+        result.responses[0].fullTextAnnotation &&
+        result.responses[0].fullTextAnnotation.text.trim() !== ""
       ) {
         const detectedText = result.responses[0].fullTextAnnotation.text;
         setText(detectedText);
@@ -116,17 +116,16 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
         setAnalizSonuclari(sonuclar);
         await saveScannedImage(uri, sonuclar.join("\n\n"));
         onScanComplete();
-        setLoading(false);
       } else {
         setText("Görselde metin bulunamadı.");
       }
     } catch (error) {
       console.error("OCR işlemi sırasında hata oluştu:", error);
       setText("OCR işlemi başarısız oldu.");
-      setLoading(false);
+    } finally {
+      setLoading(false); // 🔁 Her durumda loading durur
     }
   };
-
   const analizEt = (metin: string): string[] => {
     const normalizedText = metin.toLowerCase();
     const sonuclar: string[] = [];
