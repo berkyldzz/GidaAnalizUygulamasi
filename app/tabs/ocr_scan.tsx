@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import TextRecognition from "react-native-text-recognition";
 import {
   View,
   Text,
@@ -11,21 +12,32 @@ import {
   Modal,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../styles/theme";
 import { gida_database } from "../../assets/database";
-import { GOOGLE_VISION_API_KEY } from '@env';
 
-  const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
+const formatAnalysis = (text: string): string[] => {
+  const lowerText = text.toLowerCase();
+  return Object.keys(gida_database)
+    .filter((code) => lowerText.includes(code))
+    .map((code) => {
+      const madde = gida_database[code];
+      let sonuc = `${code.toUpperCase()} | Güvenilirlik: ${madde.güvenilirlik}`;
+      if (madde.etiklik === "haram") {
+        sonuc += ` | Etiklik: haram`;
+      }
+      sonuc += `\nAçıklama: ${madde.açıklama}`;
+      return sonuc;
+    });
+};
+
+const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
   const [image, setImage] = useState<string | null>(null);
   const [text, setText] = useState<string>("");
-  const [gidaDatabase, setGidaDatabase] = useState<any>({});
   const [analizSonuclari, setAnalizSonuclari] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setGidaDatabase(gida_database);
     (async () => {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
@@ -80,41 +92,15 @@ import { GOOGLE_VISION_API_KEY } from '@env';
   const processImage = async (uri: string) => {
     setLoading(true);
     try {
-      const base64Img = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-  
-      const body = JSON.stringify({
-        requests: [
-          {
-            image: { content: base64Img },
-            features: [{ type: "TEXT_DETECTION" }],
-          },
-        ],
-      });
-  
-      const response = await fetch(
-        `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: body,
-        }
-      );
-      
-      const result = await response.json();
+      const recognizedText = await TextRecognition.recognize(uri);
 
-      if (
-        result.responses &&
-        result.responses.length > 0 &&
-        result.responses[0].fullTextAnnotation &&
-        result.responses[0].fullTextAnnotation.text.trim() !== ""
-      ) {
-        const detectedText = result.responses[0].fullTextAnnotation.text;
-        setText(detectedText);
-        const sonuclar = analizEt(detectedText);
-        setAnalizSonuclari(sonuclar);
-        await saveScannedImage(uri, sonuclar.join("\n\n"));
+      if (recognizedText && recognizedText.length > 0) {
+        const detectedText = recognizedText.join(" ");
+
+        // Analyze detected text using database logic
+        const analiz = formatAnalysis(detectedText);
+        setAnalizSonuclari(analiz);
+        await saveScannedImage(uri, analiz.join("\n"));
         onScanComplete();
       } else {
         setText("Görselde metin bulunamadı.");
@@ -123,23 +109,8 @@ import { GOOGLE_VISION_API_KEY } from '@env';
       console.error("OCR işlemi sırasında hata oluştu:", error);
       setText("OCR işlemi başarısız oldu.");
     } finally {
-      setLoading(false); // 🔁 Her durumda loading durur
+      setLoading(false);
     }
-  };
-  const analizEt = (metin: string): string[] => {
-    const normalizedText = metin.toLowerCase();
-    const sonuclar: string[] = [];
-
-    Object.keys(gidaDatabase).forEach((madde) => {
-      const kelime = madde.toLowerCase();
-      if (normalizedText.includes(kelime)) {
-        const bilgi = gidaDatabase[madde];
-        const yorum = `Madde: ${madde}\nGüvenilirlik: ${bilgi.güvenilirlik}\nEtiklik: ${bilgi.etiklik}\nAçıklama: ${bilgi.açıklama}`;
-        sonuclar.push(yorum);
-      }
-    });
-
-    return sonuclar;
   };
 
   const saveScannedImage = async (uri: string, extractedText: string) => {
@@ -205,46 +176,42 @@ import { GOOGLE_VISION_API_KEY } from '@env';
               {analizSonuclari.length > 0 ? (
                 <>
                   <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 8, overflow: "hidden" }}>
-                    {analizSonuclari.map((sonuc, index) => {
-                      const [madde, Güvenilirlik, Etiklik, Açıklama] = sonuc.split("\n").map((line) => line.replace(/^.*?:\s*/, "").trim());
-                      return (
-                        <View
-                          key={index}
-                          style={{
-                            borderBottomWidth: 1,
-                            borderBottomColor: "#ddd",
-                            padding: 10,
-                            alignItems: "center",
-                          }}
-                        >
-                          <Text style={{ fontWeight: "bold", fontSize: 16, textAlign: "center" }}>{madde}</Text>
-                      <Text style={{ 
-                        color: Güvenilirlik.toLowerCase() === "zararlı" 
-                          ? "red" 
-                          : Güvenilirlik.toLowerCase() === "şüpheli" 
-                          ? "orange" 
-                          : "green", 
-                        marginTop: 4, 
-                        textAlign: "center" 
-                      }}>
-                            Güvenilirlik: <Text style={{ fontWeight: "600" }}>{Güvenilirlik}</Text>
-                      </Text>
-                      <Text style={{ 
-                        color: Etiklik.toLowerCase() === "haram"
-                          ? "red"
-                          : Etiklik.toLowerCase() === "şüpheli"
-                          ? "orange"
-                          : "green",
-                        textAlign: "center" 
-                      }}>
-                            Etiklik: <Text style={{ fontWeight: "600" }}>{Etiklik}</Text>
-                      </Text>
-                          <Text style={{ color: "#333", marginTop: 6, fontSize: 13, textAlign: "center" }}>
-                            {Açıklama}
+                    {analizSonuclari.map((sonuc, index) => (
+                      <View
+                        key={index}
+                        style={{
+                          borderBottomWidth: 1,
+                          borderBottomColor: "#ddd",
+                          padding: 10,
+                          alignItems: "flex-start",
+                          backgroundColor: "#f9f9f9",
+                          marginVertical: 4,
+                          borderRadius: 8,
+                        }}
+                      >
+                        {sonuc.split("\n").map((line, lineIndex) => (
+                          <Text
+                            key={lineIndex}
+                            style={{
+                              fontSize: 16,
+                              color:
+                                line.toLowerCase().includes("güvenilirlik: zararlı")
+                                  ? "red"
+                                  : line.toLowerCase().includes("güvenilirlik")
+                                  ? "green"
+                                  : "#333",
+                              fontWeight:
+                                line.toLowerCase().includes("güvenilirlik") ||
+                                line.toLowerCase().includes("etiklik")
+                                  ? "bold"
+                                  : "normal",
+                            }}
+                          >
+                            {line}
                           </Text>
-                        </View>
-                      );
-                    })}
+                        ))}
+                      </View>
+                    ))}
                   </View>
                 </>
               ) : !loading && (
