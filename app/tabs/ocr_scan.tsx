@@ -309,16 +309,22 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     marginTop: 20,
-    backgroundColor: theme.colors.accent,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    backgroundColor: "#1E90FF", // Daha dikkat çekici bir mavi
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 50, // Daha yumuşak kenarlar
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   resetButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#FFFFFF",
+    fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
+    letterSpacing: 1,
   },
 }); 
 
