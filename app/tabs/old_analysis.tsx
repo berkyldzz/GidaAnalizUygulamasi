@@ -15,6 +15,36 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../styles/theme";
+import { PDFDocument, rgb } from "pdf-lib";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { encode as btoa } from "base-64";
+
+const formatDate = (dateString: string) => {
+  const parts = dateString.split(" ")[0].replace(",", "").split("/");
+  if (parts.length === 3) {
+    return `${parts[1]}/${parts[0]}/${parts[2]}`; // gün/ay/yıl
+  }
+  return dateString;
+};
+
+const replaceTurkishChars = (text: string) => {
+  const map: { [key: string]: string } = {
+    ı: "i",
+    İ: "I",
+    ş: "s",
+    Ş: "S",
+    ç: "c",
+    Ç: "C",
+    ü: "u",
+    Ü: "U",
+    ö: "o",
+    Ö: "O",
+    ğ: "g",
+    Ğ: "G",
+  };
+  return text.replace(/[\u0130\u0131\u015E\u015F\u00C7\u00E7\u00DC\u00FC\u00D6\u00F6\u011E\u011F]/g, (match) => map[match] || match);
+};
 
 const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
   const [scannedItems, setScannedItems] = useState<any[]>([]);
@@ -22,6 +52,7 @@ const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [textModalVisible, setTextModalVisible] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
 
   const fetchScannedItems = async () => {
     try {
@@ -44,6 +75,69 @@ const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
     setRefreshing(true);
     await fetchScannedItems();
     setRefreshing(false);
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      if (!selectedItem?.text) {
+        console.error("PDF için analiz sonucu yok.");
+        return;
+      }
+      
+      const pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage();
+      const { width, height } = page.getSize();
+      const fontSize = 12;
+      const lines = selectedItem.text.split("\n");
+
+      let y = height - 50;
+      lines.forEach((line) => {
+        if (y < 50) {
+          page.drawText("---Devami icin yeni sayfa---", { x: 50, y, size: fontSize });
+          y = height - 50;
+        }
+        const cleanedLine = replaceTurkishChars(line);
+        page.drawText(cleanedLine, { x: 50, y, size: fontSize });
+        y -= 20;
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const pdfUri = FileSystem.cacheDirectory + "analysis_result.pdf";
+      const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
+      await FileSystem.writeAsStringAsync(pdfUri, pdfBase64, { encoding: FileSystem.EncodingType.Base64 });
+
+      await Sharing.shareAsync(pdfUri, { mimeType: "application/pdf" });
+    } catch (error) {
+      console.error("PDF oluşturulurken hata:", error);
+    } finally {
+      setOptionsVisible(false);
+    }
+  };
+
+
+  const handleDeleteAnalysis = async () => {
+    try {
+      if (!selectedItem) return;
+
+      const storedItems = await AsyncStorage.getItem("scannedImages");
+      if (storedItems) {
+        const parsedItems = JSON.parse(storedItems);
+
+        // Seçilen item'ı URI'ye göre filtreleyerek sil
+        const updatedItems = parsedItems.filter((item: any) => item.uri !== selectedItem.uri);
+
+        // Güncellenmiş listeyi AsyncStorage'a kaydet
+        await AsyncStorage.setItem("scannedImages", JSON.stringify(updatedItems));
+
+        // Ekrandaki listeyi de güncelle
+        setScannedItems(updatedItems);
+      }
+    } catch (error) {
+      console.error("Analiz silinirken hata oluştu:", error);
+    } finally {
+      setOptionsVisible(false);
+      setTextModalVisible(false);
+    }
   };
 
   return (
@@ -75,7 +169,7 @@ const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
                   </TouchableOpacity>
                   <View style={styles.dateContainer}>
                     <Text style={styles.dateText}>
-                      📅 {item.date ? item.date.split(" ")[0].replace(",", "") : "Tarih Yok"}
+                      📅 {item.date ? formatDate(item.date) : "Tarih Yok"}
                     </Text>
                     <Text style={styles.timeText}>
                       ⏰ {item.date ? item.date.split(" ")[1] : "Saat Yok"}
@@ -118,67 +212,52 @@ const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
               <TouchableOpacity style={styles.closeButton} onPress={() => setTextModalVisible(false)}>
                 <Text style={styles.closeButtonText}>← Geri</Text>
               </TouchableOpacity>
-              <Text style={{ fontWeight: "bold", fontSize: 18, marginBottom: 10, textAlign: "center" }}>
+              <TouchableOpacity style={styles.optionsButton} onPress={() => setOptionsVisible(prev => !prev)}>
+                <Text style={styles.optionsButtonText}>...</Text>
+              </TouchableOpacity>
+              {optionsVisible && (
+                <View style={styles.optionsMenu}>
+                  <TouchableOpacity onPress={handleDownloadPdf}>
+                    <Text style={styles.optionText}>📄 PDF İndir</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleDeleteAnalysis}>
+                    <Text style={styles.optionText}>🗑️ Analizi Sil</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <Text style={{ fontWeight: "bold", fontSize: 25, marginBottom: 10, textAlign: "center" }}>
                 📊 Madde Analizi
               </Text>
-              <ScrollView style={styles.textScroll}>
-                {selectedItem?.text && selectedItem.text.trim() !== "" ? (
-                  <>
-                    <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 8, overflow: "hidden" }}>
-                      {selectedItem.text.split("\n\n").map((entry: string, index: number) => {
-                        const madde = entry.split("\n").find((line: string) => line.startsWith("Madde:"))?.replace("Madde:", "").trim() || "Bilinmiyor";
-                        const güvenilirlik = entry.split("\n").find((line: string) => line.startsWith("Güvenilirlik:"))?.replace("Güvenilirlik:", "").trim() || "Bilinmiyor";
-                        const etiklik = entry.split("\n").find((line: string) => line.startsWith("Etiklik:"))?.replace("Etiklik:", "").trim() || "Bilinmiyor";
-                        const açıklama = entry.split("\n").find((line: string) => line.startsWith("Açıklama:"))?.replace("Açıklama:", "").trim() || "";
-                        return (
-                          <View
-                            key={index}
-                            style={{
-                              borderBottomWidth: 1,
-                              borderBottomColor: "#ddd",
-                              padding: 10,
-                              alignItems: "center",
-                            }}
-                          >
-                            <Text style={{ fontWeight: "bold", fontSize: 16, textAlign: "center" }}>{madde}</Text>
-                            <Text
-                              style={{
-                                color:
-                                  güvenilirlik.toLowerCase() === "zararlı"
-                                    ? "red"
-                                    : güvenilirlik.toLowerCase() === "şüpheli"
-                                    ? "orange"
-                                    : "green",
-                                marginTop: 4,
-                                textAlign: "center",
-                              }}
-                            >
-                              Güvenilirlik: <Text style={{ fontWeight: "600" }}>{güvenilirlik}</Text>
-                            </Text>
-                            <Text
-                              style={{
-                                color:
-                                  etiklik.toLowerCase() === "haram"
-                                    ? "red"
-                                    : etiklik.toLowerCase() === "şüpheli"
-                                    ? "orange"
-                                    : "green",
-                                textAlign: "center",
-                              }}
-                            >
-                              Etiklik: <Text style={{ fontWeight: "600" }}>{etiklik}</Text>
-                            </Text>
-                            <Text style={{ color: "#333", marginTop: 6, fontSize: 13, textAlign: "center" }}>
-                              {açıklama}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </>
-                ) : (
-                  <Text style={styles.modalText}>Analiz sonucu bulunamadı.</Text>
-                )}
+              <ScrollView
+                style={{ width: "100%" }}
+                contentContainerStyle={{ paddingBottom: 20 }}
+                showsVerticalScrollIndicator={true}
+              >
+                <View style={{ paddingHorizontal: 10 }}>
+                  {selectedItem?.text ? (
+                    selectedItem.text.split("\n").map((line: string, index: number) => (
+                      <Text
+                        key={index}
+                        style={{
+                          fontSize: 16,
+                          marginBottom: 8,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                          color:
+                            line.toLowerCase().includes("güvenilirlik: zararlı")
+                              ? "red"
+                              : line.toLowerCase().includes("güvenilirlik: güvenli")
+                              ? "green"
+                              : "#333",
+                        }}
+                      >
+                        {line}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text style={styles.modalText}>Analiz sonucu bulunamadı.</Text>
+                  )}
+                </View>
               </ScrollView>
             </View>
           </View>
@@ -195,7 +274,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 10,
+    paddingTop: 1,
+    paddingHorizontal: 10,
   },
   title: {
     fontSize: 22,
@@ -256,7 +336,7 @@ const styles = StyleSheet.create({
   },
   resultButtonText: {
     color: "#FFF",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     textAlign: "center"
   },
@@ -313,7 +393,39 @@ const styles = StyleSheet.create({
   },
   row: {
     justifyContent: "space-between", // 📌 2 sütun görünüm için hizalama
-  }
+  },
+  optionsButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 10,
+  },
+  optionsButtonText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#007AFF",
+  },
+  optionsMenu: {
+    position: "absolute",
+    top: 50,
+    right: 10,
+    backgroundColor: "#ffffff", // Opak beyaz
+    padding: 10,
+    borderRadius: 8,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    zIndex: 20,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  optionText: {
+    fontSize: 16,
+    paddingVertical: 5,
+    color: "#333",
+  },
 });
 
 export default OldAnalysis;

@@ -7123,7 +7123,7 @@ export const gida_database =
   "protein": {
     "güvenilirlik": "güvenli",
     "etiklik": "helal",
-    "açıklama": "kas gelişimi ve enerji için önemlidir. kaynağına göre helal/haram olabilir."
+    "açıklama": "kas gelişimi ve enerji için önemlidir."
   },
   "yağ": {
     "güvenilirlik": "güvenli",
@@ -7133,7 +7133,7 @@ export const gida_database =
   "jelatin": {
     "güvenilirlik": "şüpheli",
     "etiklik": "haram",
-    "açıklama": "hayvansal kaynaklı olabilir. domuzdan elde edilirse haramdır, helal jelatin tercih edilmelidir."
+    "açıklama": "hayvansal kaynaklı olabilir. domuzdan elde edilirse haramdır."
   },
   "domuz yağı": {
     "güvenilirlik": "zararlı",
@@ -7153,17 +7153,17 @@ export const gida_database =
   "laktoz": {
     "güvenilirlik": "güvenli",
     "etiklik": "helal",
-    "açıklama": "süt şekeri olarak bilinir. genellikle helaldir ancak işleme yöntemine dikkat edilmelidir."
+    "açıklama": "süt şekeri olarak bilinir. işleme yöntemine dikkat edilmelidir."
   },
   "soya lesitini": {
     "güvenilirlik": "güvenli",
     "etiklik": "helal",
-    "açıklama": "soya fasulyesinden elde edilir. helal kabul edilir."
+    "açıklama": "soya fasulyesinden elde edilir."
   },
   "gluten": {
     "güvenilirlik": "zararlı",
     "etiklik": "helal",
-    "açıklama": "buğday, arpa ve çavdar gibi tahıllarda bulunan bir proteindir. çölyak hastaları ve gluten hassasiyeti olan bireyler için zararlı olabilir. kaynağına göre helal olabilir ancak çapraz bulaş riski taşır."
+    "açıklama": "buğday, arpa ve çavdar gibi tahıllarda bulunan bir proteindir. çölyak hastaları ve gluten hassasiyeti olan bireyler için zararlı olabilir. çapraz bulaş riski taşır."
   },
   "sakkarin": {
     "güvenilirlik": "şüpheli",
@@ -7198,12 +7198,12 @@ export const gida_database =
   "aspartam": {
     "güvenilirlik": "zararlı",
     "etiklik": "helal",
-    "açıklama": "yapay tatlandırıcıdır. nörolojik etkiler üzerine araştırmalar yapılmaktadır. genelde helal kabul edilir, ancak aşırı tüketimi önerilmez. çocuklar için önerilmez."
+    "açıklama": "yapay tatlandırıcıdır. nörolojik etkiler üzerine araştırmalar yapılmaktadır. aşırı tüketimi önerilmez. çocuklar için önerilmez."
   },
   "karmin": {
     "güvenilirlik": "zararlı",
     "etiklik": "haram",
-    "açıklama": "böceklerden elde edilen kırmızı renklendiricidir. helal değildir. özellikle müslüman ve vegan bireyler için kaçınılmalıdır."
+    "açıklama": "böceklerden elde edilen kırmızı renklendiricidir. özellikle müslüman ve vegan bireyler için kaçınılmalıdır."
   },
   "glukoz şurubu": {
     "güvenilirlik": "zararlı",
@@ -7213,17 +7213,17 @@ export const gida_database =
   "mısır nişastası": {
     "güvenilirlik": "güvenli",
     "etiklik": "helal",
-    "açıklama": "kıvam artırıcı olarak kullanılır. genellikle güvenlidir ve helal kabul edilir. ancak gdo içerebilir."
+    "açıklama": "kıvam artırıcı olarak kullanılır. genellikle güvenlidir . gdo içerebilir."
   },
   "palm yağı": {
     "güvenilirlik": "şüpheli",
     "etiklik": "helal",
     "açıklama": "işlenmiş ürünlerde sık kullanılır. sürdürülebilirliği ve sağlık etkileri tartışmalıdır. doymuş yağ oranı yüksektir."
   },
-  "sitrik asit (e330)": {
+  "sitrik asit": {
     "güvenilirlik": "güvenli",
     "etiklik": "helal",
-    "açıklama": "doğal meyvelerden elde edilen asitlik düzenleyici. genelde güvenlidir. ancak sentetik üretim şekli nedeniyle hassas kişilerde irritasyon yapabilir."
+    "açıklama": "doğal meyvelerden elde edilen asitlik düzenleyici. genelde güvenlidir. sentetik üretim şekli nedeniyle hassas kişilerde irritasyon yapabilir."
   },
   "aroma": {
     "güvenilirlik": "şüpheli",
@@ -7388,7 +7388,7 @@ export const gida_database =
   "karbonhidrat": {
     "güvenilirlik": "güvenli",
     "etiklik": "helal",
-    "açıklama": "vücudun enerji kaynağıdır. kompleks karbonhidratlar faydalıyken, rafine karbonhidratlar aşırı tüketildiğinde sağlık sorunlarına yol açabilir. genellikle helaldir."
+    "açıklama": "vücudun enerji kaynağıdır. kompleks karbonhidratlar faydalıyken, rafine karbonhidratlar aşırı tüketildiğinde sağlık sorunlarına yol açabilir."
   },
   "diyet lifi": {
     "güvenilirlik": "güvenli",
@@ -7398,7 +7398,7 @@ export const gida_database =
   "kolajen": {
     "güvenilirlik": "şüpheli",
     "etiklik": "şüpheli",
-    "açıklama": "hayvansal kaynaklı protein. domuz veya sığırdan elde edilebilir. kaynağına göre helal/haram olabilir."
+    "açıklama": "hayvansal kaynaklı protein. domuz veya sığırdan elde edilebilir."
   },
   "omega-6": {
     "güvenilirlik": "güvenli",
@@ -7473,12 +7473,12 @@ export const gida_database =
   "sodyum kazeinat": {
     "güvenilirlik": "güvenli",
     "etiklik": "helal",
-    "açıklama": "Sodyum kazeinat, süt proteini olan kazein tuzudur. Genellikle güvenlidir ve helal kabul edilir. Ancak aşırı tüketimde gaz ve şişkinlik yapabilir."
+    "açıklama": "Sodyum kazeinat, süt proteini olan kazein tuzudur. Genellikle güvenlidir. Ancak aşırı tüketimde gaz ve şişkinlik yapabilir."
   },
   "sodyum laktat": {
     "güvenilirlik": "güvenli",
     "etiklik": "helal",
-    "açıklama": "Sodyum laktat, koruyucu ve asitlik düzenleyici olarak kullanılır. Genellikle güvenlidir ve helal kabul edilir. Ancak aşırı tüketimde mide rahatsızlığına neden olabilir."
+    "açıklama": "Sodyum laktat, koruyucu ve asitlik düzenleyici olarak kullanılır. Genellikle güvenlidir . aşırı tüketimde mide rahatsızlığına neden olabilir."
   },
   "sodyum metabisülfit": {
     "güvenilirlik": "zararlı",

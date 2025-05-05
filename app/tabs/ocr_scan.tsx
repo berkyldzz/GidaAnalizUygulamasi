@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import * as FileSystem from "expo-file-system";
 import TextRecognition from "react-native-text-recognition";
 import {
   View,
@@ -24,7 +25,7 @@ const formatAnalysis = (text: string): string[] => {
       const madde = gida_database[code];
       let sonuc = `${code.toUpperCase()} | Güvenilirlik: ${madde.güvenilirlik}`;
       if (madde.etiklik === "haram") {
-        sonuc += ` | Etiklik: haram`;
+        sonuc += ` | Etiklik: Haram`;
       }
       sonuc += `\nAçıklama: ${madde.açıklama}`;
       return sonuc;
@@ -36,6 +37,7 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
   const [text, setText] = useState<string>("");
   const [analizSonuclari, setAnalizSonuclari] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -119,11 +121,20 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
       return;
     }
     try {
+      const fileName = uri.split("/").pop();
+      const newPath = `${FileSystem.documentDirectory}${fileName}`;
+      
+      // Move image to a permanent location
+      await FileSystem.copyAsync({
+        from: uri,
+        to: newPath,
+      });
+
       const storedItems = await AsyncStorage.getItem("scannedImages");
       let images = storedItems ? JSON.parse(storedItems) : [];
 
       const newImage = {
-        uri,
+        uri: newPath,
         text: extractedText,
         date: new Date().toLocaleString(),
       };
@@ -155,6 +166,10 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
         {image && (
           <View style={styles.resultContainer}>
             <Image source={{ uri: image }} style={styles.image} />
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              onPress={() => setImageModalVisible(true)}
+            />
             {loading && (
               <Text style={{ fontSize: 16, marginBottom: 10, color: theme.colors.primary }}>
                 🔄 Analiz yapılıyor...
@@ -164,8 +179,8 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
               <Text
                 style={{
                   fontWeight: "bold",
-                  fontSize: 18,
-                  marginBottom: 10,
+                  fontSize: 20,
+                  marginBottom: 12,
                   textAlign: "center",
                 }}
               >
@@ -182,11 +197,11 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
                         style={{
                           borderBottomWidth: 1,
                           borderBottomColor: "#ddd",
-                          padding: 10,
-                          alignItems: "flex-start",
+                          paddingVertical: 12,
+                          paddingHorizontal: 16,
                           backgroundColor: "#f9f9f9",
-                          marginVertical: 4,
-                          borderRadius: 8,
+                          marginVertical: 6,
+                          borderRadius: 10,
                         }}
                       >
                         {sonuc.split("\n").map((line, lineIndex) => (
@@ -197,14 +212,12 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
                               color:
                                 line.toLowerCase().includes("güvenilirlik: zararlı")
                                   ? "red"
-                                  : line.toLowerCase().includes("güvenilirlik")
+                                  : line.toLowerCase().includes("güvenilirlik: güvenli")
                                   ? "green"
                                   : "#333",
-                              fontWeight:
-                                line.toLowerCase().includes("güvenilirlik") ||
-                                line.toLowerCase().includes("etiklik")
-                                  ? "bold"
-                                  : "normal",
+                              fontWeight: "bold",
+                              textAlign: "center",
+                              marginBottom: 4,
                             }}
                           >
                             {line}
@@ -229,6 +242,18 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
           </View>
         )}
       </View>
+      <Modal visible={imageModalVisible} transparent={true}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.9)", justifyContent: "center", alignItems: "center" }}>
+          <TouchableOpacity style={{ flex: 1, width: "100%" }} onPress={() => setImageModalVisible(false)}>
+            {image && (
+              <Image
+                source={{ uri: image }}
+                style={{ width: "100%", height: "100%", resizeMode: "contain" }}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -243,7 +268,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingBottom: 120, // 📌 Alt bardan kaçınmak için boşluk bırakıldı
+    paddingBottom: 20,
   },
   centerContainer: {
     justifyContent: "center",
@@ -284,15 +309,18 @@ const styles = StyleSheet.create({
   resultContainer: {
     alignItems: "center",
     width: "100%",
-    marginTop: 20,
+    marginTop: 40, // 📌 Daha fazla boşluk
+    paddingTop: 10,
   },
   image: {
-    width: "100%",
+    width: "90%",
     height: 200,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: theme.colors.accent,
     marginBottom: 20,
+    resizeMode: "contain",
+    alignSelf: "center", // 📌 Ortalamak için eklendi
   },
   resultBox: {
     backgroundColor: theme.colors.cardBackground,
@@ -309,10 +337,11 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     marginTop: 20,
-    backgroundColor: "#1E90FF", // Daha dikkat çekici bir mavi
+    marginBottom: 150,
+    backgroundColor: "#FF6347", // Kırmızı
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 50, // Daha yumuşak kenarlar
+    borderRadius: 50,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,

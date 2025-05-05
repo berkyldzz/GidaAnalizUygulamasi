@@ -5,10 +5,11 @@ import {
 import { Ionicons } from "@expo/vector-icons"; // 📌 Modern ikonlar için Ionicons kullanıldı
 import OcrScan from "./tabs/ocr_scan";
 import OldAnalysis from "./tabs/old_analysis";
+import Profile from "./tabs/profile";
 import { theme } from "./styles/theme";
 
 const _layout = () => {
-  const [activePage, setActivePage] = useState<"scan" | "analysis">("scan");
+  const [activePage, setActivePage] = useState<"scan" | "analysis" | "profile">("scan");
   const [scanTrigger, setScanTrigger] = useState(0); // 📌 Tarama sonrası tetikleyici
 
   return (
@@ -20,9 +21,11 @@ const _layout = () => {
       <View style={{ flex: 1 }}>
         {activePage === "scan" ? (
           <OcrScan onScanComplete={() => setScanTrigger(prev => prev + 1)} />
-        ) : (
+        ) : activePage === "analysis" ? (
           <OldAnalysis scanTrigger={scanTrigger} />
-        )}
+        ) : activePage === "profile" ? (
+          <Profile />
+        ) : null}
       </View>
 
       {/* 📌 Alt Navigasyon Bar */}
@@ -40,7 +43,15 @@ const _layout = () => {
           style={[styles.navButton, activePage === "analysis" && styles.activeButton]}
         >
           <Ionicons name="documents-outline" size={24} color={activePage === "analysis" ? "#FFF" : theme.colors.buttonText} />
-          <Text style={[styles.navText, activePage === "analysis" && styles.activeText]}>Geçmiş</Text>
+          <Text style={[styles.navText, activePage === "analysis" && styles.activeText]}>Geçmiş Analizler</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          onPress={() => setActivePage("profile")} 
+          style={[styles.navButton, activePage === "profile" && styles.activeButton]}
+        >
+          <Ionicons name="person-outline" size={24} color={activePage === "profile" ? "#FFF" : theme.colors.buttonText} />
+          <Text style={[styles.navText, activePage === "profile" && styles.activeText]}>Profil</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -70,7 +81,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: 70,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     shadowColor: "#000",
@@ -78,7 +89,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
-    paddingBottom: Platform.OS === "ios" ? 15 : 10,
+    paddingBottom: Platform.OS === "ios" ? 10 : 5,
     paddingHorizontal: 20,
   },
   navButton: {
@@ -102,6 +113,56 @@ const styles = StyleSheet.create({
   },
   activeText: {
     color: "#FFF",
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBackground: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+  },
+  fullImage: {
+    width: "90%",
+    height: "80%",
+    resizeMode: "contain",
+  },
+  profileContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 20,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: theme.colors.primary,
+    marginBottom: 6,
+  },
+  profileEmail: {
+    fontSize: 16,
+    color: theme.colors.secondary,
+    marginBottom: 20,
+  },
+  editButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  editButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
