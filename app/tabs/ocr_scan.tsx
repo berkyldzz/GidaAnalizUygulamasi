@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as FileSystem from "expo-file-system";
 import TextRecognition from "react-native-text-recognition";
+import Tesseract from "tesseract.js";
 import {
   View,
   Text,
@@ -11,6 +12,7 @@ import {
   ScrollView,
   Alert,
   Modal,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -49,57 +51,83 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
   }, []);
 
   const handlePickImage = () => {
-    Alert.alert(
-      "Fotoğraf Seç",
-      "Lütfen bir seçenek seçin:",
-      [
-        {
-          text: "📷 Kamera",
-          onPress: async () => {
-            let result = await ImagePicker.launchCameraAsync({
-              mediaTypes: ["images"], // ✅ yenisi
-              allowsEditing: true,
-              aspect: [4, 3],
-              quality: 1,
-            });
-            if (!result.canceled && result.assets.length > 0) {
-              const selectedImage = result.assets[0].uri;
-              setImage(selectedImage);
-              processImage(selectedImage);
-            }
+    // Web desteği için Platform.OS kontrolü
+    // @ts-ignore
+    if (typeof Platform !== "undefined" && Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const imageUri = reader.result as string;
+            setImage(imageUri);
+            processImage(imageUri);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
+    } else {
+      Alert.alert(
+        "Fotoğraf Seç",
+        "Lütfen bir seçenek seçin:",
+        [
+          {
+            text: "📷 Kamera",
+            onPress: async () => {
+              let result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+              });
+              if (!result.canceled && result.assets.length > 0) {
+                const selectedImage = result.assets[0].uri;
+                setImage(selectedImage);
+                processImage(selectedImage);
+              }
+            },
           },
-        },
-        {
-          text: "🖼️ Galeri",
-          onPress: async () => {
-            let result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ["images"], // ✅ yenisi
-              allowsEditing: true,
-              aspect: [4, 3],
-              quality: 1,
-            });
-            if (!result.canceled && result.assets.length > 0) {
-              const selectedImage = result.assets[0].uri;
-              setImage(selectedImage);
-              processImage(selectedImage);
-            }
+          {
+            text: "🖼️ Galeri",
+            onPress: async () => {
+              let result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+              });
+              if (!result.canceled && result.assets.length > 0) {
+                const selectedImage = result.assets[0].uri;
+                setImage(selectedImage);
+                processImage(selectedImage);
+              }
+            },
           },
-        },
-        { text: "İptal", style: "cancel" },
-      ],
-      { cancelable: true }
-    );
+          { text: "İptal", style: "cancel" },
+        ],
+        { cancelable: true }
+      );
+    }
   };
 
   const processImage = async (uri: string) => {
     setLoading(true);
     try {
-      const recognizedText = await TextRecognition.recognize(uri);
+      let detectedText = "";
 
-      if (recognizedText && recognizedText.length > 0) {
-        const detectedText = recognizedText.join(" ");
+      if (Platform.OS === "web") {
+        const result = await Tesseract.recognize(uri, 'eng');
+        detectedText = result.data.text;
+      } else {
+        const recognizedText = await TextRecognition.recognize(uri);
+        detectedText = recognizedText.join(" ");
+      }
 
-        // Analyze detected text using database logic
+      if (detectedText) {
         const analiz = formatAnalysis(detectedText);
         setAnalizSonuclari(analiz);
         await saveScannedImage(uri, analiz.join("\n"));
@@ -121,20 +149,23 @@ const OcrScan = ({ onScanComplete }: { onScanComplete: () => void }) => {
       return;
     }
     try {
-      const fileName = uri.split("/").pop();
-      const newPath = `${FileSystem.documentDirectory}${fileName}`;
-      
-      // Move image to a permanent location
-      await FileSystem.copyAsync({
-        from: uri,
-        to: newPath,
-      });
+      let savedUri = uri;
+
+      if (Platform.OS !== "web") {
+        const fileName = uri.split("/").pop();
+        const newPath = `${FileSystem.documentDirectory}${fileName}`;
+        await FileSystem.copyAsync({
+          from: uri,
+          to: newPath,
+        });
+        savedUri = newPath;
+      }
 
       const storedItems = await AsyncStorage.getItem("scannedImages");
       let images = storedItems ? JSON.parse(storedItems) : [];
 
       const newImage = {
-        uri: newPath,
+        uri: savedUri,
         text: extractedText,
         date: new Date().toLocaleString(),
       };
