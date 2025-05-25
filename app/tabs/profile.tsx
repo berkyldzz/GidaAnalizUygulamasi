@@ -2,7 +2,11 @@ import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { theme } from "../styles/theme";
 
-const Profile = () => {
+type ProfileProps = {
+  onLogout: () => void;
+};
+
+const Profile = ({ onLogout }: ProfileProps) => {
   return (
     <View style={styles.profileContainer}>
       <Image
@@ -14,9 +18,15 @@ const Profile = () => {
       <TouchableOpacity style={styles.editButton}>
         <Text style={styles.editButtonText}>Profili Düzenle</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={onLogout}
+      >
+        <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
+      </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   profileContainer: {
@@ -49,6 +59,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   editButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  logoutButton: {
+    backgroundColor: "#E53935",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    marginTop: 40,
+  },
+  logoutButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",

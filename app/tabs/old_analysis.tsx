@@ -85,16 +85,39 @@ const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
       }
       
       const pdfDoc = await PDFDocument.create();
+      const imageBytes = await FileSystem.readAsStringAsync(selectedItem.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const imageUint8 = Uint8Array.from(atob(imageBytes), (c) => c.charCodeAt(0));
+      const jpgImage = await pdfDoc.embedJpg(imageUint8);
+      const jpgDims = jpgImage.scale(0.4); // Görseli küçült
+
       const page = pdfDoc.addPage();
-      const { width, height } = page.getSize();
+      page.drawImage(jpgImage, {
+        x: 50,
+        y: page.getHeight() - jpgDims.height - 50,
+        width: jpgDims.width,
+        height: jpgDims.height,
+      });
+      let y = page.getHeight() - jpgDims.height - 70;
+
       const fontSize = 12;
+      
+      const analysisDate = selectedItem?.date || "";
+      page.drawText(`Tarih: ${analysisDate}`, {
+        x: 50,
+        y: y,
+        size: fontSize,
+        color: rgb(0, 0, 0),
+      });
+      y -= 30;
+
       const lines = selectedItem.text.split("\n");
 
-      let y = height - 50;
       lines.forEach((line) => {
         if (y < 50) {
           page.drawText("---Devami icin yeni sayfa---", { x: 50, y, size: fontSize });
-          y = height - 50;
+          y = page.getHeight() - 50;
         }
         const cleanedLine = replaceTurkishChars(line);
         page.drawText(cleanedLine, { x: 50, y, size: fontSize });
@@ -218,7 +241,7 @@ const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
               {optionsVisible && (
                 <View style={styles.optionsMenu}>
                   <TouchableOpacity onPress={handleDownloadPdf}>
-                    <Text style={styles.optionText}>📄 PDF İndir</Text>
+                    <Text style={styles.optionText}>📄 PDF Olarak İndir</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={handleDeleteAnalysis}>
                     <Text style={styles.optionText}>🗑️ Analizi Sil</Text>
@@ -267,6 +290,7 @@ const OldAnalysis = ({ scanTrigger }: { scanTrigger: number }) => {
   );
 };
 
+import { Platform } from "react-native";
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
@@ -274,7 +298,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 1,
+    paddingTop: Platform.OS === "web" ? 90 : 1,
     paddingHorizontal: 10,
   },
   title: {
