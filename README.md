@@ -1,4 +1,4 @@
-                                       🧪 Gıda Analiz Uygulaması
+                                       🧪 Gıda Dedektifi
 
   📷 OCR ile içindekiler listesini tarar, 📊 analiz eder ve 🚨 zararlı katkı maddelerini tespit eder.
 
@@ -7,7 +7,7 @@
 
 ## 🔍 Hakkında
 
-**Gıda Analiz Uygulaması**, kullanıcıların bir ürünün içindekiler bölümünü tarayıp içindeki katkı maddelerini **güvenilirlik** ve **helallik** açısından değerlendirmesine olanak sağlar. Uygulama, OCR teknolojisiyle metni görselden algılar ve yerel veritabanı üzerinden analiz yapar.  
+**Gıda Dedektifi**, kullanıcıların bir ürünün içindekiler bölümünü tarayıp içindeki katkı maddelerini **güvenilirlik** ve **helallik** açısından değerlendirmesine olanak sağlar. Uygulama, OCR teknolojisiyle metni görselden algılar ve yerel veritabanı üzerinden analiz yapar.  
 Eğer katkı maddesi **zararlıysa kırmızı**, **zararsızsa yeşil**, **haramsa** ayrıca belirtilir.
 
 ---
